@@ -1,8 +1,8 @@
 # FINAL PROJECT PROPOSAL (DATS-6103)
 
-**PROJECT NAME:** Machine Learning for Kubernetes Container Load Prediction and Scaling  
-**TEAM MEMBERS:** Aditi Shukla, Ashley Gyapomah  
-**PRESENTATION**:**https://www.canva.com/design/DAG6Jvcr8ac/qreREQ-7FKHPJaakeipZ_w/edit?utm_content=DAG6Jvcr8ac&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton   
+**PROJECT NAME** Machine Learning for Kubernetes Container Load Prediction and Scaling  
+**TEAM MEMBERS** Aditi Shukla, Ashley Gyapomah  
+**PRESENTATION**https://www.canva.com/design/DAG6Jvcr8ac/qreREQ-7FKHPJaakeipZ_w/edit?utm_content=DAG6Jvcr8ac&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton   
 
 
 ---
