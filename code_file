@@ -1,0 +1,38 @@
+# ==== Imports + Load Data ====
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from IPython.display import display
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    classification_report
+)
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.cluster import KMeans
+
+
+try:
+    from xgboost import XGBClassifier
+    XGB_AVAILABLE = True
+except ImportError:
+    XGB_AVAILABLE = False
+    print("XGBoost not installed, will skip that model.")
+alloc_df = pd.read_csv(r"C:/Users/shukl/Downloads/archive (17)/kubernetes_resource_allocation_dataset.csv")
+
+
+print("Allocation data shape:", alloc_df.shape)
+display(alloc_df.head())
+alloc_df.columns.tolist()
