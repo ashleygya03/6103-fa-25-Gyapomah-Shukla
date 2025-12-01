@@ -1,143 +1,129 @@
-# FINAL PROJECT PROPOSAL (DATS-6103)
-
-**PROJECT NAME** Machine Learning for Kubernetes Container Load Prediction and Scaling  
-**TEAM MEMBERS** Aditi Shukla, Ashley Gyapomah  
-**PRESENTATION**https://www.canva.com/design/DAG6Jvcr8ac/qreREQ-7FKHPJaakeipZ_w/edit?utm_content=DAG6Jvcr8ac&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton   
-
-
----
-
-## SMART QUESTION
-
-**RESEARCH QUESTION:** How can machine learning predict container overload and improve Kubernetes scaling performance?
-
-**S:** Analyze CPU, memory, latency, and configuration features that drive overload events.  
-**M:** Evaluate ML models using Accuracy, Precision, Recall, F1-Score, ROC-AUC.  
-**A:** Use Kaggle’s Kubernetes Resource & Performance Metrics dataset.  
-**R:** Supports proactive scaling and improves cluster reliability.  
-**T:** Completed over a 4-week structured timeline.
-
----
-
-## OBJECTIVE
+## OBJECTIVE  
 **OBJECTIVE:** Predict upcoming container overloads in Kubernetes before autoscaling events occur.
 
 ---
 
-## PROBLEM STATEMENT
-In Kubernetes clusters, containers often exceed CPU/memory limits before Kubernetes creates new pods.  
-This scaling delay causes:
+## PROBLEM STATEMENT  
+In Kubernetes clusters, containers can exceed CPU and memory limits *before* Kubernetes creates new pods.  
+This delay in scaling results in:  
 - Buffering  
-- Slow responses  
+- Slow response times  
 - Temporary performance issues  
 
-This project aims to predict overload **before** it happens, enabling proactive scaling.
+This project aims to predict overload **before** it happens, enabling proactive and timely scaling.
 
 ---
 
-## SOLUTION
-Using the Kubernetes resource + performance metrics dataset, we will:
-- Detect patterns that indicate overload  
-- Train ML models to forecast when scaling is needed  
-- Reduce delay between load spikes and autoscaling  
-- Improve system responsiveness  
+## SOLUTION  
+Using the Kubernetes **resource allocation dataset**, we will:  
+- Identify patterns that indicate CPU or memory overload  
+- Engineer utilization features (CPU/Memory ratios, request ratios, overall load)  
+- Train machine learning models to forecast when scaling is needed  
+- Evaluate performance using Accuracy, Precision, Recall, F1-Score, and ROC-AUC  
+
+This approach helps create a predictive autoscaling mechanism instead of relying solely on reactive scaling.
+
+---
+## DATASET OVERVIEW  
+The project uses the **Kubernetes Resource Allocation Dataset** containing 15,000 records of pod-level resource usage.
+
+### KEY FEATURES INCLUDED:
+- **CPU Metrics:**  
+  `cpu_request`, `cpu_limit`, `cpu_usage`
+- **Memory Metrics:**  
+  `memory_request`, `memory_limit`, `memory_usage`
+- **Pod Metadata:**  
+  `pod_name`, `namespace`, `pod_status`, `node_name`
+- **Operational Metrics:**  
+  `restart_count`, `uptime_seconds`, `deployment_strategy`, `scaling_policy`
+- **Network Metric:**  
+  `network_bandwidth_usage`
+
+The dataset provides accurate insights into how pods consume resources, making it ideal for predicting overload events.
 
 ---
 
-## IMPACT
-- Triggers early scaling instead of waiting for failures  
-- Avoids temporary lag or downtime  
-- Enhances Kubernetes autoscaling efficiency  
-- Improves user experience under high load  
+## DATA PREPROCESSING  
+To ensure reliable model performance, several preprocessing steps were applied:
+
+- Standardized column names  
+- Removed invalid or negative values  
+- Verified no missing values in critical resource columns  
+- Sorted records by `pod_name` and timestamp (where applicable)  
+- Encoded categorical features using **OneHotEncoding**  
+- Normalized numerical features using **StandardScaler**  
+- Performed an 80/20 **train-test split** with stratification to preserve class balance
+
+These steps ensured clean, consistent, and high-quality data for machine learning.
 
 ---
 
-## DATASET
+## FEATURE ENGINEERING  
+Additional meaningful metrics were derived to improve prediction performance:
 
-**SOURCE:** Kaggle – Kubernetes Resource & Performance Metrics Allocation Dataset  
+- **CPU Utilization:** `cpu_usage / cpu_limit`  
+- **Memory Utilization:** `memory_usage / memory_limit`  
+- **CPU Request Ratio:** `cpu_usage / cpu_request`  
+- **Memory Request Ratio:** `memory_usage / memory_request`  
+- **Overall Load Score:** Average of CPU and Memory utilization  
 
-**CONTAINS TWO CATEGORIES:**  
-- **Performance Metrics:** CPU usage, memory usage, disk I/O, network latency  
-- **Resource Allocation Metrics:** CPU/memory limits, requests, scaling configs  
-
-**COVERS DATA FROM:** Pods and nodes across Kubernetes clusters  
-
-**PURPOSE:** Analyze resource behavior and predict overload patterns  
-
-**USE CASE:** Build ML models to detect overload and recommend scaling  
-
-**KEY FEATURES:**  
-- CPU usage  
-- Memory usage  
-- Network latency  
-- Resource allocation limits  
-
-**GOAL:** Bridge the gap between allocated vs actual resource usage.
+These engineered features highlight stress patterns that correlate strongly with overload.
 
 ---
 
-## APPROACH
+## TARGET VARIABLE  
+The target label **need_new_pod** identifies when a pod is overloaded.
 
-**1. DATA ACQUISITION**  
-- Import datasets from Kaggle
+A pod is considered overloaded when:
+- **CPU Utilization > 0.75**, or  
+- **Memory Utilization > 0.75**
 
-**2. DATA CLEANING & PREPROCESSING**  
-- Missing value handling  
-- Normalization of numerical features  
-- Encoding categorical variables  
+### CLASS DISTRIBUTION:
+- **1 — Overloaded:** 83.7%  
+- **0 — Not Overloaded:** 16.3%  
 
-**3. EXPLORATORY DATA ANALYSIS (EDA)**  
-- Visualize CPU/memory trends  
-- Identify correlations  
-- Detect overload patterns  
+This imbalance required careful stratification during the train-test split to avoid biased training.
 
-**4. FEATURE ENGINEERING**  
-- CPU-to-memory ratio  
-- Utilization efficiency  
-- Rolling averages  
-- Network load  
+---
 
-**5. MODEL BUILDING**  
-- Logistic Regression  
-- Decision Tree  
-- Random Forest  
-- XGBoost  
-- K-Means (for clustering)
+## MODELING APPROACH  
+Several machine learning models were trained and evaluated using the same preprocessing pipeline:
 
-**6. MODEL EVALUATION**  
+- **Logistic Regression**  
+- **Decision Tree Classifier**  
+- **Random Forest Classifier**  
+- **Gradient Boosting Classifier**  
+- **XGBoost Classifier** 
+
+### EVALUATION METRICS:
 - Accuracy  
 - Precision  
 - Recall  
 - F1-Score  
 - ROC-AUC  
 
-**7. INSIGHTS & RECOMMENDATIONS**  
-- Key factors causing overload  
-- Suggestions for optimized autoscaling  
+These models help determine the most reliable method for predicting overload behavior.
 
-**8. REPORT & VISUALIZATION**  
-- Model comparison  
-- Feature importance  
-- Final summary  
+---
+## CONCLUSION  
+This project successfully demonstrates how machine learning can:
+
+- Predict pod overload *before* it happens  
+- Reduce scaling delays  
+- Improve system responsiveness  
+- Support smarter, proactive autoscaling decisions  
+
+By leveraging resource utilization metrics and engineered features, the model provides a high-accuracy solution for Kubernetes autoscaling prediction.
 
 ---
 
-## TIMELINE
+## FUTURE WORK  
+Potential enhancements include:
 
-**WEEK 1:** Data acquisition + preprocessing  
-**WEEK 2:** EDA + feature engineering  
-**WEEK 3:** Model building + evaluation  
-**WEEK 4:** Insights, recommendations, final report  
-
----
-
-## POSSIBLE ISSUES
-
-- Accuracy may not generalize to real Kubernetes environments  
-- Models rely on dataset quality; unseen spikes may be hard to predict  
-- Some metrics may misalign with model needs  
-- Missing or incomplete data reduces accuracy  
-- Real-time implementation requires streaming pipelines  
+- Integrating real-time latency and performance metrics  
+- Building a multistep time-series forecasting model  
+- Deploying the model within a Kubernetes cluster  
+- Implementing live alerts for overload prediction  
+- Testing with real production workloads
 
 ---
-
