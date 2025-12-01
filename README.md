@@ -1,3 +1,7 @@
+## DATS 6103 DATA MINING - ADITI SHUKLA, ASHLEY GYAPOMAH
+
+---
+
 ## OBJECTIVE  
 **OBJECTIVE:** Predict upcoming container overloads in Kubernetes before autoscaling events occur.
 
@@ -43,7 +47,7 @@ The dataset provides accurate insights into how pods consume resources, making i
 
 ---
 
-## DATA PREPROCESSING  
+## DATA PREPROCESSING  - COMPLETED
 To ensure reliable model performance, several preprocessing steps were applied:
 
 - Standardized column names  
@@ -58,7 +62,7 @@ These steps ensured clean, consistent, and high-quality data for machine learnin
 
 ---
 
-## FEATURE ENGINEERING  
+## FEATURE ENGINEERING  - COMPLETED
 Additional meaningful metrics were derived to improve prediction performance:
 
 - **CPU Utilization:** `cpu_usage / cpu_limit`  
@@ -71,7 +75,7 @@ These engineered features highlight stress patterns that correlate strongly with
 
 ---
 
-## TARGET VARIABLE  
+## TARGET VARIABLE  - COMPLETED 
 The target label **need_new_pod** identifies when a pod is overloaded.
 
 A pod is considered overloaded when:
@@ -86,7 +90,7 @@ This imbalance required careful stratification during the train-test split to av
 
 ---
 
-## MODELING APPROACH  
+## MODELING APPROACH  - COMPLETED 
 Several machine learning models were trained and evaluated using the same preprocessing pipeline:
 
 - **Logistic Regression**  
@@ -95,7 +99,7 @@ Several machine learning models were trained and evaluated using the same prepro
 - **Gradient Boosting Classifier**  
 - **XGBoost Classifier** 
 
-### EVALUATION METRICS:
+### EVALUATION METRICS: - COMPLETED 
 - Accuracy  
 - Precision  
 - Recall  
@@ -105,7 +109,7 @@ Several machine learning models were trained and evaluated using the same prepro
 These models help determine the most reliable method for predicting overload behavior.
 
 ---
-## CONCLUSION  
+## CONCLUSION  - COMPLETED 
 This project successfully demonstrates how machine learning can:
 
 - Predict pod overload *before* it happens  
