@@ -36,3 +36,393 @@ alloc_df = pd.read_csv(r"C:/Users/shukl/Downloads/archive (17)/kubernetes_resour
 print("Allocation data shape:", alloc_df.shape)
 display(alloc_df.head())
 alloc_df.columns.tolist()
+alloc_df.describe()
+# ==== Basic Cleaning & Timestamp Handling ====
+
+# Normalize column names (lowercase, remove spaces)
+alloc_df.columns = alloc_df.columns.str.strip().str.lower()
+
+print("Allocation dataset columns:")
+print(list(alloc_df.columns))
+
+# Convert timestamp to datetime if present
+if "timestamp" in alloc_df.columns:
+    alloc_df["timestamp"] = pd.to_datetime(alloc_df["timestamp"], errors="coerce")
+
+print("\n=== alloc_df.info() ===")
+print(alloc_df.info())
+
+print("\nMissing values in alloc_df:")
+print(alloc_df.isna().sum())
+
+# ==== Working Copy + Clean Core Resource Columns ====
+
+# Work from a copy so we don't accidentally mutate the original
+df = alloc_df.copy()
+
+# Critical numeric resource columns we care about
+key_numeric_cols = [
+    "cpu_request", "cpu_limit", "cpu_usage",
+    "memory_request", "memory_limit", "memory_usage"
+]
+
+# Keep only the ones that actually exist in this dataset
+present_key_cols = [c for c in key_numeric_cols if c in df.columns]
+print("Key numeric columns present:", present_key_cols)
+
+# Drop rows with missing values in these key columns
+df = df.dropna(subset=present_key_cols)
+print("Shape after dropping rows with missing key resource columns:", df.shape)
+
+# Remove any negative values (just in case)
+for col in present_key_cols:
+    df = df[df[col] >= 0]
+
+print("Shape after removing negative resource values:", df.shape)
+
+# Quick peek at these cleaned core columns
+display(df[present_key_cols].head())
+
+
+# ==== Feature Engineering (Utilization & Ratios) ====
+
+# Small epsilon to avoid division-by-zero
+eps = 1e-6
+
+# CPU & Memory utilization vs limits
+df["cpu_utilization"] = df["cpu_usage"] / (df["cpu_limit"] + eps)
+df["memory_utilization"] = df["memory_usage"] / (df["memory_limit"] + eps)
+
+# Usage vs requests ratio
+df["cpu_request_ratio"] = df["cpu_usage"] / (df["cpu_request"] + eps)
+df["memory_request_ratio"] = df["memory_usage"] / (df["memory_request"] + eps)
+
+# Combined load metric
+df["overall_load"] = (df["cpu_utilization"] + df["memory_utilization"]) / 2
+
+# Preview engineered features
+display(df[[
+    "cpu_request", "cpu_limit", "cpu_usage",
+    "memory_request", "memory_limit", "memory_usage",
+    "cpu_utilization", "memory_utilization",
+    "cpu_request_ratio", "memory_request_ratio",
+    "overall_load"
+]].head())
+
+
+#Define Target Label (need_new_pod)
+
+# Sort by pod and time (mostly for consistency)
+if "timestamp" in df.columns:
+    df = df.sort_values(["pod_name", "timestamp"])
+else:
+    df = df.sort_values(["pod_name"])
+
+# Thresholds for overload 
+cpu_thresh = 0.75
+mem_thresh = 0.75
+
+# Current overload flag
+df["overloaded_now"] = (
+    (df["cpu_utilization"] > cpu_thresh) |
+    (df["memory_utilization"] > mem_thresh)
+).astype(int)
+
+print("Current overload distribution (overloaded_now):")
+print(df["overloaded_now"].value_counts())
+print("Current overload rate:", round(df["overloaded_now"].mean(), 4))
+
+# For this dataset (one row per pod), our target = current overload
+df["need_new_pod"] = df["overloaded_now"]
+
+print("\nTarget distribution (need_new_pod):")
+print(df["need_new_pod"].value_counts())
+print("Target rate:", round(df["need_new_pod"].mean(), 4))
+
+# Quick preview with key columns + target
+cols_to_show = [
+    col for col in [
+        "timestamp" if "timestamp" in df.columns else None,
+        "pod_name",
+        "cpu_utilization", "memory_utilization",
+        "need_new_pod"
+    ] if col is not None
+]
+
+display(df[cols_to_show].head(10))
+
+
+
+
+# ==== EDA - Utilization, Target Distribution & Correlations ====
+
+# 1. Target distribution (need_new_pod)
+print("Target distribution (need_new_pod):")
+print(df["need_new_pod"].value_counts())
+print("Target rate:", round(df["need_new_pod"].mean(), 4))
+
+plt.figure(figsize=(5,4))
+df["need_new_pod"].value_counts().plot(kind="bar")
+plt.title("Need New Pod (Overload) Class Distribution")
+plt.xlabel("need_new_pod (0 = no, 1 = yes)")
+plt.ylabel("Count")
+plt.show()
+
+
+# 2. CPU utilization distribution
+plt.figure(figsize=(6,4))
+df["cpu_utilization"].hist(bins=50)
+plt.title("CPU Utilization Distribution")
+plt.xlabel("CPU Utilization")
+plt.ylabel("Count")
+plt.show()
+
+# 3. Memory utilization distribution
+plt.figure(figsize=(6,4))
+df["memory_utilization"].hist(bins=50)
+plt.title("Memory Utilization Distribution")
+plt.xlabel("Memory Utilization")
+plt.ylabel("Count")
+plt.show()
+
+
+# 4. CPU & Memory utilization by need_new_pod (0 vs 1)
+plt.figure(figsize=(8,4))
+df.boxplot(column="cpu_utilization", by="need_new_pod")
+plt.title("CPU Utilization by Need New Pod")
+plt.suptitle("")
+plt.xlabel("need_new_pod (0 = no, 1 = yes)")
+plt.ylabel("CPU Utilization")
+plt.show()
+
+plt.figure(figsize=(8,4))
+df.boxplot(column="memory_utilization", by="need_new_pod")
+plt.title("Memory Utilization by Need New Pod")
+plt.suptitle("")
+plt.xlabel("need_new_pod (0 = no, 1 = yes)")
+plt.ylabel("Memory Utilization")
+plt.show()
+
+
+# 5. Boxplots by scaling policy (if column exists)
+if "scaling_policy" in df.columns:
+    plt.figure(figsize=(8,4))
+    df.boxplot(column="cpu_utilization", by="scaling_policy")
+    plt.title("CPU Utilization by Scaling Policy")
+    plt.suptitle("")
+    plt.ylabel("CPU Utilization")
+    plt.show()
+
+    plt.figure(figsize=(8,4))
+    df.boxplot(column="memory_utilization", by="scaling_policy")
+    plt.title("Memory Utilization by Scaling Policy")
+    plt.suptitle("")
+    plt.ylabel("Memory Utilization")
+    plt.show()
+
+
+# 6. Mean utilization grouped by namespace (if present)
+if "namespace" in df.columns:
+    print("\nMean CPU & Memory Utilization by Namespace:")
+    display(df.groupby("namespace")[["cpu_utilization", "memory_utilization"]].mean())
+
+
+# 7. Correlation heatmap for numeric columns (including target)
+numeric_cols_all = df.select_dtypes(include=[np.number]).columns
+corr = df[numeric_cols_all].corr()
+
+# 7. Correlation heatmap for numeric columns (including target)
+import seaborn as sns
+
+numeric_cols_all = df.select_dtypes(include=[np.number]).columns
+corr = df[numeric_cols_all].corr()
+
+plt.figure(figsize=(10,8))
+
+# ONLY CHANGE: use sns.heatmap with fmt='.2f'
+sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm")
+
+plt.title("Correlation Heatmap (Numeric Features + Target)")
+plt.tight_layout()
+plt.show()
+
+
+from scipy.stats import f_oneway
+
+# Example: ANOVA for CPU usage across different namespaces
+groups = [group["cpu_usage"].values for name, group in df.groupby("namespace")]
+
+anova_stat, anova_p = f_oneway(*groups)
+
+print("ANOVA F-statistic:", anova_stat)
+print("ANOVA P-value:", anova_p)
+
+if anova_p < 0.05:
+    print("There is a significant difference between groups.")
+else:
+    print("No significant difference between groups.")
+
+
+from scipy.stats import ttest_ind
+
+group1 = df[df["need_new_pod"] == 1]["cpu_usage"]
+group0 = df[df["need_new_pod"] == 0]["cpu_usage"]
+
+t_stat, p_val = ttest_ind(group1, group0, equal_var=False)
+
+print("T-statistic:", t_stat)
+print("P-value:", p_val)
+
+if p_val < 0.05:
+    print("The means are significantly different.")
+else:
+    print("No significant difference.")
+
+
+import scipy.stats as stats
+import pandas as pd
+
+# Contingency table
+ct = pd.crosstab(df["scaling_policy"], df["need_new_pod"])
+
+chi2, p, dof, expected = stats.chi2_contingency(ct)
+
+print("Chi-square:", chi2)
+print("P-value:", p)
+
+if p < 0.05:
+    print("Variables are dependent.")
+else:
+    print("Variables are independent.")
+
+# ==== Preprocessing (Scaling + One-Hot Encoding) ====
+
+# Numeric features → StandardScaler
+numeric_transformer = StandardScaler()
+
+# Categorical features → OneHotEncoder
+categorical_transformer = OneHotEncoder(handle_unknown="ignore")
+
+# Combine into a single preprocessing pipeline
+preprocess = ColumnTransformer(
+    transformers=[
+        ("num", numeric_transformer, numeric_features),
+        ("cat", categorical_transformer, categorical_features)
+    ]
+)
+
+print("Preprocessing pipeline successfully created.")
+
+# ==== Train Multiple Models & Compare Performance ====
+
+models = {
+    "LogisticRegression": LogisticRegression(max_iter=1000),
+    "DecisionTree": DecisionTreeClassifier(max_depth=6, random_state=42),
+    "RandomForest": RandomForestClassifier(
+        n_estimators=200,
+        max_depth=None,
+        random_state=42,
+        class_weight="balanced"
+    ),
+    "GradientBoosting": GradientBoostingClassifier(random_state=42)
+}
+
+if XGB_AVAILABLE:
+    models["XGBoost"] = XGBClassifier(
+        n_estimators=200,
+        learning_rate=0.1,
+        max_depth=5,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        eval_metric="logloss"
+    )
+
+results = []
+
+for name, clf in models.items():
+    print(f"\n===== Training {name} =====")
+
+    # Build pipeline: preprocessing + model
+    pipe = Pipeline(steps=[
+        ("preprocess", preprocess),
+        ("model", clf)
+    ])
+
+    # Fit the model
+    pipe.fit(X_train, y_train)
+
+    # Predictions
+    y_pred = pipe.predict(X_test)
+
+    # Probabilities for ROC-AUC if available
+    if hasattr(pipe.named_steps["model"], "predict_proba"):
+        y_proba = pipe.predict_proba(X_test)[:, 1]
+        roc = roc_auc_score(y_test, y_proba)
+    else:
+        y_proba = None
+        roc = np.nan
+
+    # Metrics
+    acc = accuracy_score(y_test, y_pred)
+    prec = precision_score(y_test, y_pred, zero_division=0)
+    rec = recall_score(y_test, y_pred, zero_division=0)
+    f1 = f1_score(y_test, y_pred, zero_division=0)
+
+    print("Accuracy :", round(acc, 4))
+    print("Precision:", round(prec, 4))
+    print("Recall   :", round(rec, 4))
+    print("F1-score :", round(f1, 4))
+    if not np.isnan(roc):
+        print("ROC-AUC :", round(roc, 4))
+
+    print("\nClassification report:")
+    print(classification_report(y_test, y_pred, zero_division=0))
+
+    # Save metrics
+    results.append({
+        "model": name,
+        "accuracy": acc,
+        "precision": prec,
+        "recall": rec,
+        "f1": f1,
+        "roc_auc": roc
+    })
+
+# Compare all models in a table
+results_df = pd.DataFrame(results)
+print("\n===== Model Comparison =====")
+display(results_df.sort_values(by="f1", ascending=False))
+
+
+
+results = {
+    "model": ["Logistic Regression", "Decision Tree", "Random Forest", "Gradient Boosting", "XGBoost"],
+    "accuracy": [0.934, 0.9983, 0.9987, 0.9997, 0.9993],
+    "f1": [0.9608, 0.999, 0.9992, 0.9998, 0.9996],
+    "roc_auc": [0.9796, 0.9969, 1.0, 0.9999, 1.0]
+}
+
+df = pd.DataFrame(results)
+
+# Plot
+fig, ax = plt.subplots(figsize=(10, 5))
+df.plot(x="model", y=["accuracy", "f1", "roc_auc"], kind="bar", ax=ax)
+
+plt.title("Model Performance Comparison")
+plt.ylabel("Score")
+plt.xticks(rotation=45)
+plt.ylim(0.9, 1.01)
+plt.grid(axis='y', linestyle='--', alpha=0.5)
+
+plt.show()
+
+
+
+
+
+
+
+
+
+
