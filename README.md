@@ -11,10 +11,17 @@ In large systems, some containers consume excessive CPU and memory resources. Wh
 
 ---
 ## **SOLUTION**
-Using the Kubernetes resource and performance metrics dataset, we aim to analyze when such lags or scaling events occur and develop machine learning models to  predict  when a new 
+Using the Kubernetes resource allocation dataset, we aim to analyze when such lags or scaling events occur and develop machine learning models to  predict  when a new 
 container will be required. By doing so, we can anticipate resource bottlenecks and trigger 
 scaling actions proactively  effectively bridging the gap between high load and the delay in 
 Kubernetes automatic scaling mechanism. 
+
+## Dataset
+Download the dataset from Kaggle and place it in this folder as:
+
+`kubernetes_resource_allocation_dataset.csv`
+
+Kaggle link: <https://www.kaggle.com/datasets/nickkinyae/kubernetes-resource-and-performancemetricsallocation/data>
 
 ---
 ## **IMPACT**
